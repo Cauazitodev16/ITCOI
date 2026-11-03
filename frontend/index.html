@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor de Distância</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <aside class="sidebar">
+        <h2><span>IoT</span> Monitor</h2>
+
+        <nav>
+            <a href="#inicio" class="active">Visão geral</a>
+            <a href="#grafico">Monitoramento</a>
+            <a href="#controles">Controles</a>
+            <a href="#historico">Histórico</a>
+        </nav>
+
+        <div class="sidebar-footer">
+            Projeto Integrador IoT
+        </div>
+    </aside>
+
+    <main>
+        <header id="inicio">
+            <div>
+                <p class="eyebrow">MONITORAMENTO DE SENSORES</p>
+                <h1>Painel de controle</h1>
+                <p class="subtitle">Acompanhe as informações do seu dispositivo.</p>
+            </div>
+            <div class="connection">
+                <span class="status-dot"></span>
+                <span id="connectionStatus">Modo de demonstração</span>
+            </div>
+        </header>
+
+        <section class="cards">
+            <article class="card">
+                <p>Distância atual</p>
+                <div class="metric">
+                    <strong id="distance">--</strong>
+                    <span>cm</span>
+                </div>
+                <small id="distanceMessage">Aguardando leitura</small>
+            </article>
+
+            <article class="card">
+                <p>Última atualização</p>
+                <div class="metric">
+                    <strong id="lastUpdate">--:--:--</strong>
+                </div>
+                <small>Horário da última leitura</small>
+            </article>
+
+            <article class="card">
+                <p>Total de leituras</p>
+                <div class="metric">
+                    <strong id="readingCount">0</strong>
+                </div>
+                <small>Leituras desta demonstração</small>
+            </article>
+        </section>
+
+        <section class="panel" id="grafico">
+            <div class="section-heading">
+                <div>
+                    <h2>Monitoramento</h2>
+                    <p>Variação da distância ao longo do tempo.</p>
+                </div>
+                <span class="tag">HC-SR04</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="distanceChart"></canvas>
+            </div>
+        </section>
+
+        <section class="panel" id="controles">
+            <div class="section-heading">
+                <div>
+                    <h2>Controles do sistema</h2>
+                    <p>Controles demonstrativos dos atuadores.</p>
+                </div>
+            </div>
+
+            <div class="controls">
+                <div class="control-item">
+                    <div>
+                        <strong>Buzzer</strong>
+                        <p id="buzzerStatus">Desligado</p>
+                    </div>
+                    <button id="buzzerButton" class="control-button">
+                        Ligar
+                    </button>
+                </div>
+
+                <div class="control-item">
+                    <div>
+                        <strong>Servo motor</strong>
+                        <p id="servoStatus">Posição: 0°</p>
+                    </div>
+                    <button id="servoButton" class="control-button">
+                        Alternar posição
+                    </button>
+                </div>
+            </div>
+
+            <p class="notice">
+                Os comandos acima são apenas demonstrativos.
+                Ainda não controlam o hardware real.
+            </p>
+        </section>
+
+        <section class="panel" id="historico">
+            <div class="section-heading">
+                <div>
+                    <h2>Histórico de leituras</h2>
+                    <p>Últimas medições registradas nesta demonstração.</p>
+                </div>
+                <button id="clearHistory" class="secondary-button">
+                    Limpar histórico
+                </button>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Horário</th>
+                            <th>Distância</th>
+                            <th>Situação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody">
+                        <tr>
+                            <td colspan="3">Nenhuma leitura registrada.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <footer>
+            IoT Monitor · Projeto Integrador SENAI
+        </footer>
+    </main>
+</body>
+</html>

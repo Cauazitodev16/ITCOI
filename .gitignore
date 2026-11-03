@@ -1,0 +1,22 @@
+# Ambiente Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Variáveis e senhas
+.env
+.env.*
+
+# Banco de dados local
+*.db
+*.sqlite
+*.sqlite3
+
+# Arduino
+*.hex
+*.elf
+
+# Sistema
+.DS_Store
+Thumbs.db
