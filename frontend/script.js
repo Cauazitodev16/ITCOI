@@ -1,10 +1,13 @@
+const API_URL = "http://127.0.0.1:8000";
+
 const distanceElement = document.getElementById("distance");
 const updateElement = document.getElementById("lastUpdate");
 const countElement = document.getElementById("readingCount");
 const messageElement = document.getElementById("distanceMessage");
 const historyBody = document.getElementById("historyBody");
+const connectionStatus = document.getElementById("connectionStatus");
+const statusDot = document.querySelector(".status-dot");
 
-const history = [];
 const maxReadings = 20;
 
 const chart = new Chart(
@@ -51,62 +54,143 @@ const chart = new Chart(
     }
 );
 
-function registerReading(distance) {
-    const now = new Date();
-    const time = now.toLocaleTimeString("pt-BR");
+function formatTime(dateString) {
+    const date = new Date(dateString);
 
-    distanceElement.textContent = distance.toFixed(2);
-    updateElement.textContent = time;
-    messageElement.textContent =
-        distance < 20 ? "Objeto próximo" : "Leitura registrada";
-
-    history.unshift({
-        time,
-        distance: distance.toFixed(2)
-    });
-
-    if (history.length > maxReadings) {
-        history.pop();
+    if (Number.isNaN(date.getTime())) {
+        return "--:--:--";
     }
 
-    countElement.textContent = history.length;
-
-    chart.data.labels.push(time);
-    chart.data.datasets[0].data.push(distance);
-
-    if (chart.data.labels.length > maxReadings) {
-        chart.data.labels.shift();
-        chart.data.datasets[0].data.shift();
-    }
-
-    chart.update();
-    renderHistory();
+    return date.toLocaleTimeString("pt-BR");
 }
 
-function renderHistory() {
-    if (history.length === 0) {
+function updateConnectionStatus(text, color) {
+    connectionStatus.textContent = text;
+    statusDot.style.backgroundColor = color;
+}
+
+function renderHistory(readings) {
+    if (readings.length === 0) {
         historyBody.innerHTML =
             '<tr><td colspan="3">Nenhuma leitura registrada.</td></tr>';
         return;
     }
 
-    historyBody.innerHTML = history.map(item => `
-        <tr>
-            <td>${item.time}</td>
-            <td>${item.distance} cm</td>
-            <td>${Number(item.distance) < 20 ? "Objeto próximo" : "Normal"}</td>
-        </tr>
-    `).join("");
+    historyBody.innerHTML = readings.map(item => {
+        const distance = Number(item.valor);
+        const time = formatTime(item.recebido_em);
+
+        return `
+            <tr>
+                <td>${time}</td>
+                <td>${distance.toFixed(2)} cm</td>
+                <td>${distance < 20 ? "Objeto próximo" : "Normal"}</td>
+            </tr>
+        `;
+    }).join("");
 }
 
-// Dados simulados para testar o painel.
-function simulateReading() {
-    const distance = Math.random() * 100;
-    registerReading(distance);
+async function loadReadings() {
+    try {
+        const response = await fetch(
+            `${API_URL}/leituras?limite=${maxReadings}`,
+            { cache: "no-store" }
+        );
+
+        if (!response.ok) {
+            throw new Error("Erro ao buscar leituras.");
+        }
+
+        const readings = await response.json();
+
+        countElement.textContent = readings.length;
+
+        if (readings.length === 0) {
+            distanceElement.textContent = "--";
+            updateElement.textContent = "--:--:--";
+            messageElement.textContent = "Aguardando leitura";
+
+            chart.data.labels = [];
+            chart.data.datasets[0].data = [];
+            chart.update();
+
+            renderHistory([]);
+            return;
+        }
+
+        const latestReading = readings[0];
+        const distance = Number(latestReading.valor);
+
+        distanceElement.textContent = distance.toFixed(2);
+        updateElement.textContent = formatTime(
+            latestReading.recebido_em
+        );
+
+        messageElement.textContent =
+            distance < 20 ? "Objeto próximo" : "Leitura registrada";
+
+        renderHistory(readings);
+
+        // A API retorna as leituras da mais recente para a mais antiga.
+        // Para o gráfico, colocamos em ordem cronológica.
+        const chronologicalReadings = [...readings].reverse();
+
+        chart.data.labels = chronologicalReadings.map(
+            item => formatTime(item.recebido_em)
+        );
+
+        chart.data.datasets[0].data = chronologicalReadings.map(
+            item => Number(item.valor)
+        );
+
+        chart.update();
+
+    } catch (error) {
+        console.error("Erro ao carregar leituras:", error);
+        messageElement.textContent = "Não foi possível carregar os dados.";
+        throw error;
+    }
 }
 
-simulateReading();
-setInterval(simulateReading, 3000);
+async function checkConnection() {
+    try {
+        const response = await fetch(`${API_URL}/status`);
+
+        if (!response.ok) {
+            throw new Error("API indisponível.");
+        }
+
+        const status = await response.json();
+
+        const mqttStatus = status.mqtt === "conectado"
+            ? "MQTT conectado"
+            : "MQTT desconectado";
+
+        updateConnectionStatus(
+            `API online · ${mqttStatus}`,
+            "#22c55e"
+        );
+
+    } catch (error) {
+        updateConnectionStatus("API desconectada", "#ef3038");
+    }
+}
+
+async function updateDashboard() {
+    await checkConnection();
+
+    try {
+        await loadReadings();
+    } catch (error) {
+        // O erro já foi tratado e registrado em loadReadings().
+    }
+}
+
+// Atualiza o painel assim que a página abre.
+updateDashboard();
+
+// Atualiza os dados automaticamente a cada 3 segundos.
+setInterval(updateDashboard, 3000);
 
 // Controle demonstrativo do buzzer.
 let buzzerOn = false;
@@ -131,18 +215,7 @@ document.getElementById("servoButton").addEventListener("click", () => {
         `Posição: ${servoPosition}° (simulada)`;
 });
 
-// Limpar o histórico visual.
+// Atualiza o histórico manualmente.
 document.getElementById("clearHistory").addEventListener("click", () => {
-    history.length = 0;
-
-    chart.data.labels = [];
-    chart.data.datasets[0].data = [];
-    chart.update();
-
-    countElement.textContent = "0";
-    distanceElement.textContent = "--";
-    updateElement.textContent = "--:--:--";
-    messageElement.textContent = "Aguardando leitura";
-
-    renderHistory();
+    updateDashboard();
 });
