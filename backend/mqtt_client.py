@@ -1,5 +1,7 @@
+
 import json
 import os
+import time
 
 import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
@@ -78,9 +80,20 @@ client.on_message = on_message
 
 def iniciar_mqtt():
     try:
+        print(f"Conectando ao MQTT: {MQTT_HOST}:{MQTT_PORT}")
+
         client.connect(MQTT_HOST, MQTT_PORT, 60)
         client.loop_start()
-        return True
+
+        for tentativa in range(10):
+            if client.is_connected():
+                print("Conexão MQTT confirmada!")
+                return True
+
+            time.sleep(0.5)
+
+        print("Não foi possível confirmar a conexão MQTT.")
+        return False
 
     except Exception as erro:
         print(f"Não foi possível conectar ao MQTT: {erro}")
@@ -99,7 +112,6 @@ def publicar_comando(topico: str, dados: dict):
         return False
 
     mensagem = json.dumps(dados)
-
     resultado = client.publish(topico, mensagem)
 
     return resultado.rc == mqtt.MQTT_ERR_SUCCESS
